@@ -1,0 +1,118 @@
+#include "headfile.h"
+#include <stdlib.h>
+#include <string.h>
+static uint8 InitCmdQueue(Queue_T *queen);
+static Cmd_T *NextCell(Queue_T *queen, unsigned char whitch, unsigned char type);
+
+static Queue_T inst_Rk3588Queue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_FtrackQueue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_Usart0Queue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_Usart3Queue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_DebugQueue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_Usart5Queue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_PtctrlQueue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+static Queue_T inst_Uart4Queue =
+{
+    .InitCmdQueue = InitCmdQueue,
+    .NextCell           =   NextCell
+};
+Queue_T *ptr_Rk3588Queue = &inst_Rk3588Queue;
+Queue_T *ptr_FtrackQueue = &inst_FtrackQueue;
+Queue_T *ptr_CCD422Queue = &inst_Usart0Queue;
+Queue_T *ptr_IR232Queue = &inst_Usart5Queue;
+Queue_T *ptr_IRAFQueue = &inst_Uart4Queue;
+Queue_T *ptr_TempCtrlQueue = &inst_Usart3Queue;
+//Queue_T *ptr_Uart5Queue = &inst_Uart5Queue;
+Queue_T *ptr_PtctrlQueue = &inst_PtctrlQueue;
+
+Queue_T *ptr_DebugQueue = &inst_DebugQueue;
+
+static Cmd_T *NextCell(Queue_T *queen, unsigned char whitch, unsigned char type)
+{
+
+    Cmd_T *temp;
+    if (RCV_QUEEN == whitch)
+    {
+        if (type == QUEEN_TOP)
+        {
+            temp = queen->pCqRecvTop + 1;
+        }
+        else
+        {
+            temp = queen->pCqRecvBtm + 1;
+        }
+
+        if (temp >= queen->pBase + RCV_QUEUE_SIZE)
+        {
+            temp = queen->pBase;
+        }
+    }
+    else
+    {
+        if (type == QUEEN_TOP)
+        {
+            temp = queen->pCqSendTop + 1;
+        }
+        else
+        {
+            temp = queen->pCqSendBtm + 1;
+        }
+
+        if (temp >= queen->pBase + RCV_QUEUE_SIZE + SND_QUEUE_SIZE)
+        {
+            temp = queen->pBase + RCV_QUEUE_SIZE;
+        }
+    }
+
+    return temp;
+}
+
+static uint8 InitCmdQueue(Queue_T *queen)
+{
+    Cmd_T *cqSerialTop;
+
+    cqSerialTop = (Cmd_T *)malloc(sizeof(Cmd_T) * (RCV_QUEUE_SIZE + SND_QUEUE_SIZE));
+    if (NULL == cqSerialTop)
+    {
+        return 1;
+    }
+    memset(cqSerialTop, 0x00, sizeof(Cmd_T) * (RCV_QUEUE_SIZE + SND_QUEUE_SIZE));
+
+    queen->pBase = cqSerialTop;
+    queen->pCqRecvTop = queen->pBase;
+    queen->pCqRecvBtm = queen->pBase;
+
+    queen->pCqSendTop = queen->pBase + RCV_QUEUE_SIZE;
+    queen->pCqSendBtm = queen->pCqSendTop;
+
+    return 0;
+}
+

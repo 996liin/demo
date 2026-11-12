@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "GD32F470",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Firmware/CMSIS",
+                "${workspaceFolder}/Firmware/CMSIS/GD/GD32F4xx/Include",
+                "${workspaceFolder}/Firmware/GD32F4xx_standard_peripheral/Include",
+                "${workspaceFolder}/code/ARMA/inc",
+                "${workspaceFolder}/code/PowerCtrl",
+                "${workspaceFolder}/code/Code_All/inc",
+                "${workspaceFolder}/code/Interface/inc",
+                "C:/Keil_v5/ARM/ARMCC/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "__CC_ARM",
+                "USE_STDPERIPH_DRIVER",
+                "GD32F470",
+                "GD32F4XX"
+            ],
+            "compilerPath": "C:/Keil_v5/ARM/ARMCC/bin/armcc.exe",
+            "cStandard": "c99",
+            "intelliSenseMode": "msvc-x86"
+        }
+    ],
+    "version": 4
+}
