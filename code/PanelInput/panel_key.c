@@ -5,6 +5,9 @@
  * 普通瞬时按键驱动实现
  * ========================================================================== */
 
+static uint8_t panel_key_read_pressed(const PanelKeyConfig *cfg);
+
+/* 读取按键当前电平，按 active_level 判断是否按下；不做消抖。 */
 static uint8_t panel_key_read_pressed(const PanelKeyConfig *cfg)
 {
     uint8_t level;
@@ -19,6 +22,9 @@ static uint8_t panel_key_read_pressed(const PanelKeyConfig *cfg)
     return (level != 0u) ? 1u : 0u;
 }
 
+/* 初始化一路瞬时按键：
+ * 配置 GPIO 输入和内部上/下拉，并记录上电时的状态，
+ * 避免上电瞬间已经按住时误报一次按下事件。 */
 void PanelKey_Init(PanelKey *key, const PanelKeyConfig *cfg, uint8_t id)
 {
     if ((key == 0) || (cfg == 0))
@@ -55,6 +61,12 @@ void PanelKey_Init(PanelKey *key, const PanelKeyConfig *cfg, uint8_t id)
     key->initialized       = 1u;
 }
 
+/* 每 PANEL_SCAN_PERIOD_MS 调用一次，做两级消抖并产生事件：
+ *   PRESSED       按下
+ *   LONG_PRESS    按住超过 long_press_ms（只报一次）
+ *   RELEASED      松开，value = 按住时长(ms)
+ *   SHORT_PRESS   松开且短于长按阈值（需 PANEL_KEY_SHORT_PRESS_ENABLE = 1）
+ * 同一个按键的按下/松开不会重复上报。 */
 void PanelKey_Scan(PanelKey *key, uint32_t now_ms, PanelEventSink sink)
 {
     uint8_t pressed;
@@ -126,6 +138,7 @@ void PanelKey_Scan(PanelKey *key, uint32_t now_ms, PanelEventSink sink)
     }
 }
 
+/* 返回当前消抖后的稳定按下状态：1 = 按下，0 = 松开。 */
 uint8_t PanelKey_IsPressed(const PanelKey *key)
 {
     if ((key == 0) || (key->initialized == 0u))

@@ -1,0 +1,17 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'GD32F470VG'
+compiling main.c...
+compiling usart.c...
+code\Code_All\usart.c(91): warning:  #1-D: last line of file ends without a newline
+  }*/
+code\Code_All\usart.c: 1 warning, 0 errors
+compiling panel_input.c...
+code\PanelInput\panel_input.c(134): warning:  #177-D: function "panel_selector_label"  was declared but never referenced
+  static const char *panel_selector_label(uint8_t id, int16_t position)
+code\PanelInput\panel_input.c: 1 warning, 0 errors
+linking...
+Program Size: Code=8368 RO-data=1992 RW-data=64 ZI-data=18000  
+FromELF: creating hex file...
+After Build - User command #1: C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe --bin -o  .\bin\template.bin .\Output\template.axf
+".\Output\template.axf" - 0 Error(s), 2 Warning(s).
+Build Time Elapsed:  00:00:03

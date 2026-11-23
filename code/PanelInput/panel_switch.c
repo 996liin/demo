@@ -8,6 +8,14 @@
  * 这样多状态开关在切换过程中不会产生中间态的重复事件。
  * ========================================================================== */
 
+static uint8_t panel_switch_read_pattern(const PanelSwitchConfig *cfg);
+static uint8_t panel_switch_map_state(const PanelSwitchConfig *cfg,
+                                      uint8_t pattern, uint8_t *valid);
+
+
+
+/* 读取所有信号脚的原始电平，按 active_level 转成 pattern：
+ * bit i = pins[i] 是否有效；只采样，不消抖。 */
 static uint8_t panel_switch_read_pattern(const PanelSwitchConfig *cfg)
 {
     uint8_t i;
@@ -43,6 +51,9 @@ static uint8_t panel_switch_read_pattern(const PanelSwitchConfig *cfg)
     return pattern;
 }
 
+/* 把 pattern 映射成逻辑状态：
+ * 配了 state_map 就查表（0xFF 表示该组合非法），否则直接用 pattern，
+ * 即单路开关得到 0/1。 */
 static uint8_t panel_switch_map_state(const PanelSwitchConfig *cfg,
                                       uint8_t pattern, uint8_t *valid)
 {
@@ -68,6 +79,10 @@ static uint8_t panel_switch_map_state(const PanelSwitchConfig *cfg,
     return (uint8_t)(pattern & mask);
 }
 
+/* 初始化一路拨码/自锁开关：
+ * 配置 pin_count 根 GPIO，记录上电时的 pattern 和逻辑状态；
+ * 任一根引脚无效则不初始化，后续扫描直接跳过。
+ * 低有效时开内部上拉，高有效时开内部下拉。 */
 void PanelSwitch_Init(PanelSwitch *sw, const PanelSwitchConfig *cfg, uint8_t id)
 {
     uint8_t i;
@@ -120,6 +135,9 @@ void PanelSwitch_Init(PanelSwitch *sw, const PanelSwitchConfig *cfg, uint8_t id)
     sw->initialized = 1u;
 }
 
+/* 每 PANEL_SCAN_PERIOD_MS 调用一次：
+ * 状态稳定变化且映射后的逻辑状态也变化时，上报一次 SWITCH_CHANGED，
+ * value = 新状态（单路开关为 0/1）。 */
 void PanelSwitch_Scan(PanelSwitch *sw, uint32_t now_ms, PanelEventSink sink)
 {
     uint8_t pattern;
@@ -161,6 +179,7 @@ void PanelSwitch_Scan(PanelSwitch *sw, uint32_t now_ms, PanelEventSink sink)
     }
 }
 
+/* 返回当前稳定逻辑状态；未初始化返回 0。 */
 uint8_t PanelSwitch_GetState(const PanelSwitch *sw)
 {
     if ((sw == 0) || (sw->initialized == 0u))

@@ -34,9 +34,20 @@ static PanelEventHandler s_handler;
 static uint8_t           s_initialized;
 static uint32_t          s_dropped;
 
-/* --------------------------------------------------------------------------
- * 事件队列
- * -------------------------------------------------------------------------- */
+
+
+static void panel_event_push(const PanelEvent *evt);
+static uint8_t panel_event_pop(PanelEvent *evt);
+static const char *panel_name_for(const PanelEvent *evt);
+static const char *panel_selector_label(uint8_t id, int16_t position);
+static void panel_print_state(const char *tag, const char *name, int value);
+static void panel_print_all_states(void);
+static void panel_debug_print(const PanelEvent *evt);
+static void panel_print_banner(void);
+
+
+
+/* 把一条事件写入环形队列；队列满时丢弃并累加溢出计数。 */
 static void panel_event_push(const PanelEvent *evt)
 {
     if (s_q_count >= PANEL_EVENT_QUEUE_SIZE)
@@ -51,6 +62,7 @@ static void panel_event_push(const PanelEvent *evt)
     s_q_count++;
 }
 
+/* 从环形队列取出最早的一条事件；队列为空返回 0。 */
 static uint8_t panel_event_pop(PanelEvent *evt)
 {
     if ((evt == 0) || (s_q_count == 0u))
@@ -65,9 +77,8 @@ static uint8_t panel_event_pop(PanelEvent *evt)
     return 1u;
 }
 
-/* --------------------------------------------------------------------------
- * 调试输出
- * -------------------------------------------------------------------------- */
+/* 根据事件类型和 id 找到对应配置里的设备名，用于串口打印；
+ * 找不到时返回 "KEY"/"SWITCH"/"SELECTOR"/"ENCODER" 之类的通用名。 */
 static const char *panel_name_for(const PanelEvent *evt)
 {
     switch (evt->type)
@@ -118,9 +129,8 @@ static const char *panel_name_for(const PanelEvent *evt)
     return "PANEL";
 }
 
-/* 档位旋钮的显示名，例如 ZOOM 的 1X/2X/4X/8X。
- * 没有配置 position_labels 时返回 0，调试输出改用数字档位。
- */
+/* 把 SELECTOR_CHANGED 的档位号（1~N）转成显示标签，如 "1X"/"2X"/"OFF"；
+ * 没配标签或档位越界返回 0。 */
 static const char *panel_selector_label(uint8_t id, int16_t position)
 {
     const PanelSelectorConfig *cfg;
@@ -145,6 +155,72 @@ static const char *panel_selector_label(uint8_t id, int16_t position)
     return cfg->position_labels[index];
 }
 
+/* 统一的状态输出格式：TAG name: value */
+static void panel_print_state(const char *tag, const char *name, int value)
+{
+#if (PANEL_DEBUG_ENABLE != 0)
+    char buf[96];
+
+    if (name == 0)
+    {
+        name = "?";
+    }
+
+    sprintf(buf, "%s %s: %d\r\n", tag, name, value);
+    PanelPort_DebugWrite(buf);
+#else
+    (void)tag;
+    (void)name;
+    (void)value;
+#endif
+}
+
+/* 上电时把所有设备的初始状态打印一遍 */
+static void panel_print_all_states(void)
+{
+#if (PANEL_DEBUG_ENABLE != 0)
+    uint8_t i;
+
+    PanelPort_DebugWrite("=== PANEL INITIAL STATE ===\r\n");
+
+    /* 4 个瞬时按键：0 = 松开，1 = 按下 */
+    for (i = 0u; i < s_key_count; i++)
+    {
+        panel_print_state("KEY", g_panel_keys[i].name,
+                          (int)PanelInput_GetKeyState(i));
+    }
+
+    /* 10 个拨码/自锁开关：0/1 */
+    for (i = 0u; i < s_switch_count; i++)
+    {
+        panel_print_state("SW", g_panel_switches[i].name,
+                          (int)PanelInput_GetSwitchState(i));
+    }
+
+    /* 4 个多档位开关：1~N，0 = 未知 */
+    for (i = 0u; i < s_selector_count; i++)
+    {
+        panel_print_state("SEL", g_panel_selectors[i].name,
+                          (int)PanelInput_GetSelectorPosition(i));
+    }
+
+    /* 3 个编码器的 S 相按键：0/1；S 相没接时恒为 0 */
+    for (i = 0u; i < s_encoder_count; i++)
+    {
+        panel_print_state("ENC", g_panel_encoders[i].name,
+                          (int)PanelInput_GetEncoderButtonState(i));
+    }
+#endif
+}
+
+
+/* 状态变化时只打印“变化后的新状态”
+ * KEY : 0/1（松开/按下）
+ * SW  : 0/1
+ * SEL : 1~N
+ * ENC : 0/1（S 相按键）
+ * 编码器旋转仍保留 CW/CCW 输出；不需要的话删掉那两个 case。
+ */
 static void panel_debug_print(const PanelEvent *evt)
 {
 #if (PANEL_DEBUG_ENABLE != 0)
@@ -156,50 +232,25 @@ static void panel_debug_print(const PanelEvent *evt)
     switch (evt->type)
     {
         case PANEL_EVT_KEY_PRESSED:
-            sprintf(buf, "%s PRESSED\r\n", name);
+            panel_print_state("KEY", name, 1);
             break;
 
         case PANEL_EVT_KEY_RELEASED:
-            sprintf(buf, "%s RELEASED\r\n", name);
+            panel_print_state("KEY", name, 0);
             break;
 
         case PANEL_EVT_KEY_LONG_PRESS:
-            sprintf(buf, "%s LONG PRESS\r\n", name);
-            break;
-
         case PANEL_EVT_KEY_SHORT_PRESS:
-            sprintf(buf, "%s SHORT PRESS\r\n", name);
+            /* 只关心状态，长按/短按不再单独输出 */
             break;
 
         case PANEL_EVT_SWITCH_CHANGED:
-            if (evt->value == 0)
-            {
-                sprintf(buf, "%s OFF\r\n", name);
-            }
-            else if (evt->value == 1)
-            {
-                sprintf(buf, "%s ON\r\n", name);
-            }
-            else
-            {
-                sprintf(buf, "%s STATE %d\r\n", name, (int)evt->value);
-            }
+            panel_print_state("SW", name, (int)evt->value);
             break;
 
         case PANEL_EVT_SELECTOR_CHANGED:
-        {
-            const char *label = panel_selector_label(evt->id, evt->value);
-
-            if (label != 0)
-            {
-                sprintf(buf, "%s POSITION: %s\r\n", name, label);
-            }
-            else
-            {
-                sprintf(buf, "%s POSITION: %d\r\n", name, (int)evt->value);
-            }
+            panel_print_state("SEL", name, (int)evt->value);
             break;
-        }
 
         case PANEL_EVT_ENCODER_CW:
             if (evt->value > 1)
@@ -210,6 +261,7 @@ static void panel_debug_print(const PanelEvent *evt)
             {
                 sprintf(buf, "%s CLOCKWISE\r\n", name);
             }
+            PanelPort_DebugWrite(buf);
             break;
 
         case PANEL_EVT_ENCODER_CCW:
@@ -221,30 +273,31 @@ static void panel_debug_print(const PanelEvent *evt)
             {
                 sprintf(buf, "%s COUNTERCLOCKWISE\r\n", name);
             }
+            PanelPort_DebugWrite(buf);
             break;
 
         case PANEL_EVT_ENCODER_PRESSED:
-            sprintf(buf, "%s PRESSED\r\n", name);
+            panel_print_state("ENC", name, 1);
             break;
 
         case PANEL_EVT_ENCODER_RELEASED:
-            sprintf(buf, "%s RELEASED\r\n", name);
+            panel_print_state("ENC", name, 0);
             break;
 
         case PANEL_EVT_ENCODER_LONG_PRESS:
-            sprintf(buf, "%s LONG PRESS\r\n", name);
             break;
 
         default:
-            return;
+            break;
     }
-
-    PanelPort_DebugWrite(buf);
 #else
     (void)evt;
 #endif
 }
 
+
+/* 上电打印横幅：工作模式、配置的设备数量、实际生效的数量；
+ * 有设备因引脚无效未初始化时打印 WARNING。 */
 static void panel_print_banner(void)
 {
 #if (PANEL_DEBUG_ENABLE != 0)
@@ -287,12 +340,8 @@ static void panel_print_banner(void)
         }
     }
 
-#if (PANEL_PIN_MAP_READY != 0)
     PanelPort_DebugWrite("\r\n=== PANEL INPUT READY ===\r\n");
-#else
-    PanelPort_DebugWrite("\r\n=== PANEL INPUT READY (PIN DISCOVERY MODE) ===\r\n");
-    PanelPort_DebugWrite("Named device pins are not mapped; scanning KEY1..KEY23 / ENCODER1..9.\r\n");
-#endif
+
 
     sprintf(buf, "CONFIG: KEYS=%u SWITCHES=%u SELECTORS=%u ENCODERS=%u\r\n",
             (unsigned)s_key_count,
@@ -308,7 +357,6 @@ static void panel_print_banner(void)
             (unsigned)active_encoders);
     PanelPort_DebugWrite(buf);
 
-#if (PANEL_PIN_MAP_READY != 0)
     if ((active_keys < s_key_count) ||
         (active_switches < s_switch_count) ||
         (active_selectors < s_selector_count) ||
@@ -316,13 +364,14 @@ static void panel_print_banner(void)
     {
         PanelPort_DebugWrite("WARNING: some named devices have no valid pin mapping.\r\n");
     }
-#endif
+
 #endif
 }
 
-/* --------------------------------------------------------------------------
- * 对外接口
- * -------------------------------------------------------------------------- */
+/* 模块总初始化：
+ * 按 panel_config.c 的配置初始化全部按键/拨码/选择开关/编码器，
+ * 初始化调试串口并打印横幅。
+ * 注意：这里会把事件回调清空，所以 PanelInput_SetEventHandler() 必须放在它之后。 */
 void PanelInput_Init(void)
 {
     uint8_t i;
@@ -338,6 +387,7 @@ void PanelInput_Init(void)
     s_selector_count = 0u;
     s_encoder_count  = 0u;
     s_initialized    = 0u;
+
 
     if ((g_panel_keys != 0) && (g_panel_key_count > 0u))
     {
@@ -383,12 +433,14 @@ void PanelInput_Init(void)
         }
     }
 
-    PanelPort_DebugInit();
     panel_print_banner();
 
+    panel_print_all_states();
     s_initialized = 1u;
 }
 
+/* 每 PANEL_SCAN_PERIOD_MS 调用一次：
+ * 软件时基 +5ms，然后依次扫描所有设备，把产生的事件放入队列。 */
 void PanelInput_Scan(void)
 {
     uint8_t i;
@@ -422,6 +474,9 @@ void PanelInput_Scan(void)
     }
 }
 
+/* 主循环里每轮调用：
+ * 取出队列中所有事件，先串口打印，再调用注册的业务回调；
+ * 没有注册回调时就只有打印。 */
 void PanelInput_Process(void)
 {
     PanelEvent evt;
@@ -449,21 +504,27 @@ void PanelInput_Process(void)
     }
 }
 
+
+/* 轮询方式取一条事件：取到返回 1，队列为空返回 0。
+ * 注意：事件会先被 PanelInput_Process() 取走，两者不要混用。 */
 uint8_t PanelInput_PollEvent(PanelEvent *evt)
 {
     return panel_event_pop(evt);
 }
 
+/* 注册业务事件回调；必须在 PanelInput_Init() 之后调用，否则会被 Init 清掉。 */
 void PanelInput_SetEventHandler(PanelEventHandler handler)
 {
     s_handler = handler;
 }
 
+/* 返回模块内部维护的软件毫秒时基（每扫描一次 +5ms），仅供业务层参考。 */
 uint32_t PanelInput_GetTickMs(void)
 {
     return s_now_ms;
 }
 
+/* 按 id 查询按键当前稳定状态；id 越界返回 0。 */
 uint8_t PanelInput_GetKeyState(uint8_t id)
 {
     if (id < s_key_count)
@@ -474,6 +535,7 @@ uint8_t PanelInput_GetKeyState(uint8_t id)
     return 0u;
 }
 
+/* 按 id 查询拨码当前逻辑状态（0/1）；id 越界返回 0。 */
 uint8_t PanelInput_GetSwitchState(uint8_t id)
 {
     if (id < s_switch_count)
@@ -484,6 +546,7 @@ uint8_t PanelInput_GetSwitchState(uint8_t id)
     return 0u;
 }
 
+/* 按 id 查询多档位开关当前档位（1~N，0 = 未知）；id 越界返回 0。 */
 uint8_t PanelInput_GetSelectorPosition(uint8_t id)
 {
     if (id < s_selector_count)
@@ -494,6 +557,7 @@ uint8_t PanelInput_GetSelectorPosition(uint8_t id)
     return 0u;
 }
 
+/* 按 id 查询编码器 S 相按压状态；S 相已置 NONE 时恒为 0。 */
 uint8_t PanelInput_GetEncoderButtonState(uint8_t id)
 {
     if (id < s_encoder_count)

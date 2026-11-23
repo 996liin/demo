@@ -39,8 +39,7 @@ void PanelPort_InitInput(const PanelPortPin *pin, PanelPull pull);
 /* 读取引脚原始电平，返回 0 或 1 */
 uint8_t PanelPort_ReadPin(const PanelPortPin *pin);
 
-/* 调试串口初始化与输出（默认 UART4，115200-8-N-1，见 panel_config.h） */
-void PanelPort_DebugInit(void);
+
 void PanelPort_DebugWrite(const char *str);
 
 #endif /* __PANEL_PORT_H__ */

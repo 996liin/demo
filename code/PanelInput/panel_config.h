@@ -14,19 +14,11 @@
  *
  * 面板按 6 个区域组织：
  *   THERMAL CAMERA / DAY CAMERA / LRF / SYSTEM / GUN / DISPLAY
- * 共 21 个有效器件，另有 2 个紧急按键（原理图无网络，不纳入）。
+ * 共 21 个有效按键
  *
- * 重要：
- * 1. 原理图只提供 ARM_KEY1~23 和 ARM_RENC1~9 网络，
- *    没有 THERMAL/FOV/NUC 等丝印名，因此“实体器件 -> 网络”的接线表
- *    目前尚未确认。
- * 2. panel_config.c 中所有 PIN_xxx 先保持 PANEL_PIN_NONE，不猜引脚。
- * 3. 接线表填完后，把下面的 PANEL_PIN_MAP_READY 改成 1。
- * 4. PANEL_PIN_MAP_READY == 0 时，框架自动进入“网络发现模式”，
- *    扫描 23 路 KEY 和 9 路编码器，用于反查实体器件对应的网络。
  * ========================================================================== */
 
-#define PANEL_PIN_MAP_READY             0
+
 
 /* ---------------- 扫描周期与消抖 ---------------- */
 #define PANEL_SCAN_PERIOD_MS            5u      /* PanelInput_Scan 的调用周期 */
@@ -59,13 +51,11 @@
 /* 方向反了就把它改成 1，不需要改接线 */
 #define PANEL_ENCODER_REVERSE_DIRECTION 0
 
-/* ---------------- 调试串口 ----------------
- * 选用 UART4（PC12/PD2），不与面板按键/编码器引脚冲突。
- * 如果实际调试口不是 UART4，只改这里和 panel_port.c 的引脚配置。
+/* ---------------- 调试输出开关 ----------------
+ * 串口实例、波特率和引脚统一在 code/Code_All/usart.c / usart.h 中管理。
+ * 这里只控制 PanelInput 是否输出调试信息。
  */
 #define PANEL_DEBUG_ENABLE              1
-#define PANEL_DEBUG_BAUDRATE            115200u
-#define PANEL_DEBUG_UART                UART4
 
 /* ---------------- 引脚宏 ----------------
  * 用法：PANEL_PIN_E(13) 表示 GPIOE 的 PIN13，同时携带 RCU_GPIOE。

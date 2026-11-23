@@ -4,10 +4,22 @@
 /* ==========================================================================
  * 多档位旋转选择开关驱动实现
  *
- * 注意：这里不使用 A/B 相脉冲计数，只读取当前档位的静态编码。
+ * 注意：这里只读取当前档位的静态编码。
  * 具体编码方式由 panel_config.c 中的 mode / position_map 决定。
  * ========================================================================== */
 
+
+
+static uint8_t panel_selector_read_pattern(const PanelSelectorConfig *cfg);
+static uint8_t panel_selector_count_bits(uint8_t value);
+static uint8_t panel_selector_gray_to_bin(uint8_t gray);
+static uint8_t panel_selector_decode(const PanelSelectorConfig *cfg,
+                                     uint8_t pattern, uint8_t *valid);
+
+
+
+ /* 读取所有档位线的原始电平，按 active_level 拼成 pattern：
+ * bit i = pins[i] 是否有效（低有效时读到 0 记为 1）。 */
 static uint8_t panel_selector_read_pattern(const PanelSelectorConfig *cfg)
 {
     uint8_t i;
@@ -43,6 +55,7 @@ static uint8_t panel_selector_read_pattern(const PanelSelectorConfig *cfg)
     return pattern;
 }
 
+/* 统计 pattern 中 1 的个数，ONEHOT 模式用它判断"是否恰好只有一路有效"。 */
 static uint8_t panel_selector_count_bits(uint8_t value)
 {
     uint8_t count = 0u;
@@ -56,6 +69,7 @@ static uint8_t panel_selector_count_bits(uint8_t value)
     return count;
 }
 
+/* 格雷码转二进制，仅 PANEL_SELECTOR_GRAY 模式使用。 */
 static uint8_t panel_selector_gray_to_bin(uint8_t gray)
 {
     uint8_t bin = 0u;
@@ -68,6 +82,11 @@ static uint8_t panel_selector_gray_to_bin(uint8_t gray)
 
     return bin;
 }
+
+
+/* 把 pattern 解码成档位号：
+ * 优先用 position_map 自定义映射；否则按 ONEHOT/BINARY/GRAY 解码。
+ * 成功时 *valid = 1，档位号从 1 开始；换挡中间态等非法输入返回 0 且 *valid = 0。 */
 
 static uint8_t panel_selector_decode(const PanelSelectorConfig *cfg,
                                      uint8_t pattern, uint8_t *valid)
@@ -137,6 +156,9 @@ static uint8_t panel_selector_decode(const PanelSelectorConfig *cfg,
     return position;
 }
 
+/* 初始化一路多档位开关：
+ * 按 line_count 配置每根档位线的 GPIO（低有效开上拉），并记录上电时的档位。
+ * line_count == 0 或任一引脚无效时直接返回，该开关之后不会被扫描。 */
 void PanelSelector_Init(PanelSelector *sel, const PanelSelectorConfig *cfg, uint8_t id)
 {
     uint8_t i;
@@ -189,6 +211,9 @@ void PanelSelector_Init(PanelSelector *sel, const PanelSelectorConfig *cfg, uint
     sel->initialized = 1u;
 }
 
+/* 每 PANEL_SCAN_PERIOD_MS 调用一次：
+ * 消抖后若解出合法档位且与上次稳定档位不同，就上报一次 SELECTOR_CHANGED，
+ * value = 新档位号（1~N）。两档之间的空档/双档状态会被忽略，不会误报。 */
 void PanelSelector_Scan(PanelSelector *sel, uint32_t now_ms, PanelEventSink sink)
 {
     uint8_t pattern;
@@ -230,6 +255,7 @@ void PanelSelector_Scan(PanelSelector *sel, uint32_t now_ms, PanelEventSink sink
     }
 }
 
+/* 返回当前稳定档位号（1~N）；未初始化或档位未知时返回 0。 */
 uint8_t PanelSelector_GetPosition(const PanelSelector *sel)
 {
     if ((sel == 0) || (sel->initialized == 0u))

@@ -1,6 +1,7 @@
 #include "panel_port.h"
 #include "panel_config.h"
 #include "gd32f4xx.h"
+#include "usart.h"
 
 /* ==========================================================================
  * 面板输入硬件端口实现（GD32F470 + GD32F4xx 标准外设库）
@@ -8,6 +9,7 @@
  * 如果后续更换调试串口或 GPIO 操作方式，只需要修改本文件。
  * ========================================================================== */
 
+ /* 判断引脚配置是否有效：PANEL_PIN_NONE（port/pin 都为 0）视为未接线。 */
 uint8_t PanelPort_PinIsValid(const PanelPortPin *pin)
 {
     if ((pin == 0) || (pin->port == 0u) || (pin->pin == 0u))
@@ -18,6 +20,8 @@ uint8_t PanelPort_PinIsValid(const PanelPortPin *pin)
     return 1u;
 }
 
+/* 把一只脚配置为 GPIO 输入：
+ * 打开对应端口时钟，按 pull 参数选择内部上拉/下拉/浮空；无效引脚直接返回。 */
 void PanelPort_InitInput(const PanelPortPin *pin, PanelPull pull)
 {
     uint32_t pupd;
@@ -48,6 +52,7 @@ void PanelPort_InitInput(const PanelPortPin *pin, PanelPull pull)
     gpio_mode_set(pin->port, GPIO_MODE_INPUT, pupd, pin->pin);
 }
 
+/* 读取引脚原始电平，返回 0 或 1；无效引脚返回 1（当作未按下/未接线的安全值）。 */
 uint8_t PanelPort_ReadPin(const PanelPortPin *pin)
 {
     if (PanelPort_PinIsValid(pin) == 0u)
@@ -59,60 +64,20 @@ uint8_t PanelPort_ReadPin(const PanelPortPin *pin)
     return (gpio_input_bit_get(pin->port, pin->pin) == SET) ? 1u : 0u;
 }
 
-void PanelPort_DebugInit(void)
-{
-#if (PANEL_DEBUG_ENABLE != 0)
-    rcu_periph_clock_enable(RCU_GPIOC);
-    rcu_periph_clock_enable(RCU_GPIOD);
-    rcu_periph_clock_enable(RCU_UART4);
-
-    /* UART4: TX = PC12, RX = PD2, AF8
-     * 该组引脚不与面板按键/编码器冲突，作为本框架的调试口。
-     */
-    gpio_af_set(GPIOC, GPIO_AF_8, GPIO_PIN_12);
-    gpio_af_set(GPIOD, GPIO_AF_8, GPIO_PIN_2);
-
-    gpio_mode_set(GPIOC, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO_PIN_12);
-    gpio_mode_set(GPIOD, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO_PIN_2);
-
-    gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);
-    gpio_output_options_set(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_2);
-
-    usart_deinit(PANEL_DEBUG_UART);
-    usart_baudrate_set(PANEL_DEBUG_UART, PANEL_DEBUG_BAUDRATE);
-    usart_parity_config(PANEL_DEBUG_UART, USART_PM_NONE);
-    usart_word_length_set(PANEL_DEBUG_UART, USART_WL_8BIT);
-    usart_stop_bit_set(PANEL_DEBUG_UART, USART_STB_1BIT);
-    usart_hardware_flow_coherence_config(PANEL_DEBUG_UART, USART_HCM_NONE);
-    usart_transmit_config(PANEL_DEBUG_UART, USART_TRANSMIT_ENABLE);
-    usart_enable(PANEL_DEBUG_UART);
-#endif
-}
-
+/* 向调试串口发送字符串；PANEL_DEBUG_ENABLE = 0 或 str 为空时直接返回。 */
 void PanelPort_DebugWrite(const char *str)
 {
 #if (PANEL_DEBUG_ENABLE != 0)
+    unsigned short len = 0;
     if (str == 0)
     {
         return;
     }
-
-    while (*str != '\0')
+    while (str[len] != '\0')
     {
-        uint32_t timeout = 0x1FFFFu;
-
-        usart_data_transmit(PANEL_DEBUG_UART, (uint8_t)(*str));
-        str++;
-
-        /* 带超时的发送等待，避免串口异常时卡死整个扫描循环 */
-        while (usart_flag_get(PANEL_DEBUG_UART, USART_FLAG_TBE) == RESET)
-        {
-            if (timeout == 0u)
-            {
-                break;
-            }
-            timeout--;
-        }
+        len++;
     }
+
+    ps_Usart->Uart3_SendData((unsigned char *)str, len);
 #endif
 }

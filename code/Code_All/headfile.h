@@ -1,44 +1,21 @@
-#ifndef	__HEADFILE_H_
-#define	__HEADFILE_H_
+#ifndef __HEADFILE_H__
+#define __HEADFILE_H__
 
-/*
-	注：底层的h文件需要往上放
-*/
-
+/* ==========================================================================
+ * 统一头文件入口
+ *
+ * 应用层（main.c）只包含本文件；PanelInput 驱动内部仍然只包含自己需要的
+ * 头文件，避免驱动层反过来依赖应用层。
+ * ========================================================================== */
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
 #include "gd32f4xx.h"
 #include "systick.h"
-#include "typedef.h"
-#include "queue.h"
-#include "PeripheralConfiguration.h"
-#include "at24cxx.h"
-#include "UartFunction.h"
 #include "usart.h"
-#include "timer.h"
-#include "can.h"
 #include "fwdgt.h"
-#include "spi.h"
-#include "adc.h"
-#include "hdc1080.h"
-#include "config.h"
 
-#include "ccdctrl.h"
-#include "IR.h"
-#include "qcl.h"
-#include "gate.h"
-#include "lensctrl.h"
-#include "ptctrl.h"
+#include "panel_config.h"
+#include "panel_input.h"
 
-#include "preset.h"
-
-#include "laser.h"
-#include "indlight.h"
-#include "lrf.h"
-#include "fsm.h"
-#include "procotol.h"
-#include "ftrack.h"
-#include "shoot.h"
-#include "GnssCtrl.h"
-#include "wiper.h"
-#endif
-
-
+#endif /* __HEADFILE_H__ */

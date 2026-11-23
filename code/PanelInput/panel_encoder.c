@@ -9,6 +9,12 @@
  * 非法跳变返回 0，机械抖动产生的往返跳变会互相抵消，不会累积成步数。
  * ========================================================================== */
 
+static uint8_t panel_encoder_read_ab(const PanelEncoderConfig *cfg);
+static uint8_t panel_encoder_read_s_pressed(const PanelEncoderConfig *cfg);
+
+
+
+
 static const int8_t s_quad_table[16] =
 {
      0, -1,  1,  0,
@@ -17,6 +23,7 @@ static const int8_t s_quad_table[16] =
      0,  1, -1,  0
 };
 
+/* 读取编码器 A/B 两相电平，拼成 2 位值：A 在高位、B 在低位。 */
 static uint8_t panel_encoder_read_ab(const PanelEncoderConfig *cfg)
 {
     uint8_t a;
@@ -28,6 +35,8 @@ static uint8_t panel_encoder_read_ab(const PanelEncoderConfig *cfg)
     return (uint8_t)((a << 1) | b);
 }
 
+/* 读取 S 相（编码器按压键）电平，按 active_level 判断是否按下；
+ * S 相未接线时始终返回 0。 */
 static uint8_t panel_encoder_read_s_pressed(const PanelEncoderConfig *cfg)
 {
     uint8_t level;
@@ -47,6 +56,9 @@ static uint8_t panel_encoder_read_s_pressed(const PanelEncoderConfig *cfg)
     return (level != 0u) ? 1u : 0u;
 }
 
+/* 初始化一路增量式编码器：
+ * A/B 两相必须有效，配置为输入并开上拉；S 相可选，接了就一并初始化。
+ * 记录上电时的 AB 状态，A/B 任一无效则不初始化。 */
 void PanelEncoder_Init(PanelEncoder *enc, const PanelEncoderConfig *cfg, uint8_t id)
 {
     if ((enc == 0) || (cfg == 0))
@@ -98,6 +110,10 @@ void PanelEncoder_Init(PanelEncoder *enc, const PanelEncoderConfig *cfg, uint8_t
     enc->initialized = 1u;
 }
 
+/* 每 PANEL_SCAN_PERIOD_MS 调用一次：
+ * 1) 用正交解码表累计 A/B 边沿，每累积 steps_per_detent 步上报一次
+ *    ENCODER_CW / ENCODER_CCW，value = 本次步数；
+ * 2) S 相有效时顺便处理按压/松开/长按事件（当前三个 S 相可置 NONE 关闭）。 */
 void PanelEncoder_Scan(PanelEncoder *enc, uint32_t now_ms, PanelEventSink sink)
 {
     uint8_t curr_ab;
@@ -199,6 +215,8 @@ void PanelEncoder_Scan(PanelEncoder *enc, uint32_t now_ms, PanelEventSink sink)
     }
 }
 
+
+/* 返回 S 相当前稳定按下状态；未初始化或 S 相未接线时返回 0。 */
 uint8_t PanelEncoder_GetButtonState(const PanelEncoder *enc)
 {
     if ((enc == 0) || (enc->initialized == 0u))

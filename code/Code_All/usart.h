@@ -1,32 +1,25 @@
-#ifndef	__USART_H_
-#define	__USART_H_
+#ifndef __USART_H__
+#define __USART_H__
+
+#include "gd32f4xx.h"
+
+/* ==========================================================================
+ * 串口驱动（沿用旧项目方案）
+ *
+ * 对外只提供：
+ *   UartInit()       初始化全部串口
+ *   Uart4_SendData() 按字节阻塞发送
+ *
+ * 接收不使用轮询 ReadByte，而是在 UART4_IRQHandler 里把字节压入环形队列。
+ *
+ * ========================================================================== */
 
 typedef struct
 {
-	void (*UartInit)(void);
-	void (*Usart0_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Usart1_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Usart2_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Uart3_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Uart4_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Usart5_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Uart6_SendData)(unsigned char *pdata,unsigned short usdatalen);
-	void (*Uart7_SendData)(unsigned char *pdata,unsigned short usdatalen);
-		
-}Struct_Usart;
-typedef struct
-{
-	unsigned char		Length;
-	unsigned char		CheckSum;
-	unsigned char		Rxd[25];
-	unsigned char    RxdCache[25];
-	unsigned char		RxdCnt;
-	unsigned char	FlagRxdEnd;
-} USER_USART_RX;
+    void (*UartInit)(void);
+    void (*Uart3_SendData)(unsigned char *pdata, unsigned short usdatalen);
+} Struct_Usart;
+
 extern Struct_Usart *ps_Usart;
-extern USER_USART_RX s_COMLRF;
-extern USER_USART_RX s_COMCCD;
-extern  void DataBack_Angle(void);
-extern void OSD_Refresh(void);
-#endif
 
+#endif

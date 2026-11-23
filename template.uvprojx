@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Firmware\CMSIS;.\Firmware\GD32F4xx_standard_peripheral\Include;.\Firmware\CMSIS\GD\GD32F4xx\Include;.\code\ARMA;.\code\ARMB_DZ;.\code\PowerCtrl;.\code\Code_All;.\code\Interface\inc;.\code\PanelInput</IncludePath>
+              <IncludePath>.\Firmware\CMSIS;.\Firmware\GD32F4xx_standard_peripheral\Include;.\Firmware\CMSIS\GD\GD32F4xx\Include;.\code\Code_All;.\code\PanelInput</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -445,24 +445,14 @@
           <GroupName>Code_All</GroupName>
           <Files>
             <File>
-              <FileName>can.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\code\Code_All\can.c</FilePath>
-            </File>
-            <File>
-              <FileName>fwdgt.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\code\Code_All\fwdgt.c</FilePath>
-            </File>
-            <File>
               <FileName>systick.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\code\Code_All\systick.c</FilePath>
             </File>
             <File>
-              <FileName>timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\code\Code_All\timer.c</FilePath>
+              <FileName>systick.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\code\Code_All\systick.h</FilePath>
             </File>
             <File>
               <FileName>usart.c</FileName>
@@ -470,24 +460,26 @@
               <FilePath>.\code\Code_All\usart.c</FilePath>
             </File>
             <File>
-              <FileName>queue.c</FileName>
+              <FileName>usart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\code\Code_All\usart.h</FilePath>
+            </File>
+            <File>
+              <FileName>fwdgt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\code\Code_All\queue.c</FilePath>
+              <FilePath>.\code\Code_All\fwdgt.c</FilePath>
+            </File>
+            <File>
+              <FileName>fwdgt.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\code\Code_All\fwdgt.h</FilePath>
             </File>
             <File>
               <FileName>headfile.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\code\Code_All\headfile.h</FilePath>
             </File>
-            <File>
-              <FileName>PeripheralConfiguration.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\code\Code_All\PeripheralConfiguration.c</FilePath>
-            </File>
           </Files>
-        </Group>
-        <Group>
-          <GroupName>Function</GroupName>
         </Group>
         <Group>
           <GroupName>PanelInput</GroupName>
@@ -746,16 +738,6 @@
               <FileName>gd32f4xx_wwdgt.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Firmware\GD32F4xx_standard_peripheral\Source\gd32f4xx_wwdgt.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>Interface</GroupName>
-          <Files>
-            <File>
-              <FileName>Uart_debug.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\code\Interface\src\Uart_debug.c</FilePath>
             </File>
           </Files>
         </Group>
