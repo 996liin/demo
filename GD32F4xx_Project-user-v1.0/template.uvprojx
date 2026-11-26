@@ -559,6 +559,11 @@
               <FileType>5</FileType>
               <FilePath>.\code\PanelInput\panel_input.h</FilePath>
             </File>
+            <File>
+              <FileName>at24cxx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\at24cxx.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

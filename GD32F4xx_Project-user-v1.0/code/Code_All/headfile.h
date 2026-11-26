@@ -8,13 +8,14 @@
  * 头文件，避免驱动层反过来依赖应用层。
  * ========================================================================== */
 #include "stdio.h"
+#include "gd32f4xx.h"
 #include "stdlib.h"
 #include "string.h"
-#include "gd32f4xx.h"
 #include "systick.h"
 #include "usart.h"
 #include "fwdgt.h"
 
+#include "at24cxx.h"
 #include "panel_config.h"
 #include "panel_input.h"
 
