@@ -1,0 +1,18 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'GD32F470VG'
+compiling panel_input.c...
+code\PanelInput\panel_input.c(453): error:  #65: expected a ";"
+  {
+code\PanelInput\panel_input.c(483): warning:  #12-D: parsing restarts here after previous syntax error
+  }
+code\PanelInput\panel_input.c(34): warning:  #550-D: variable "s_initialized"  was set but never used
+  static uint8_t           s_initialized;
+code\PanelInput\panel_input.c(51): warning:  #177-D: function "panel_event_push"  was declared but never referenced
+  static void panel_event_push(const PanelEvent *evt)
+code\PanelInput\panel_input.c(134): warning:  #177-D: function "panel_selector_label"  was declared but never referenced
+  static const char *panel_selector_label(uint8_t id, int16_t position)
+code\PanelInput\panel_input.c: 4 warnings, 1 error
+compiling main.c...
+".\Output\template.axf" - 1 Error(s), 4 Warning(s).
+Target not created.
+Build Time Elapsed:  00:00:02

@@ -36,17 +36,17 @@ Struct_IAP *ps_IAP = &s_IAP;
 static unsigned char GetDevicePara(void)
 {
 	ps_Systick->delay_ms(30);
-	ps_AT24CXX->AT24CXX_Read(UPDATEADDR,&s_devicePara.ucUpdateFlag,1);
-//	s_devicePara.ucUpdateFlag=1;
-	s_devicePara.ucType = ucBoardType;
-//	if(s_devicePara.usUpdateNum > 10000)
-//	{
-//		s_devicePara.usUpdateNum = 0;
-//	}
-//	ps_Systick->delay_ms(30);
-//	ps_AT24CXX->AT24CXX_Write(UPDATEADDR,(unsigned char *)&s_devicePara,sizeof(s_devicePara));
-	
-	return s_devicePara.ucUpdateFlag;
+
+    s_devicePara.ucUpdateFlag = IAPFlag_Read();
+    s_devicePara.ucType = ucBoardType;
+
+    if (s_devicePara.ucUpdateFlag == IAP_FLAG_REQUEST)
+    {
+        return 1;
+    }
+
+    return 0;
+
 }
 static void SendCmdToCamera(uint32_t UART,unsigned char *ucCmd)
 {
@@ -436,6 +436,7 @@ static void IAPProcess(void)
 			
 			if(0xff == ucData)
 			{
+				uiAppSize = 0;
 				if(1 == EraseFlashBuffer())
 				{
 					SendCmdToCamera(UpdateUART,ucTypeChkCmd);
@@ -465,15 +466,24 @@ static void IAPProcess(void)
 										SendCmdToCamera(UpdateUART,ucUpdateFai);
 										break;
 									}
-									if(1 == WriteDataToUserAddr(BUFFERBASEADDR,USERBASEADDR,uiAppSize))
+									if(1 == WriteDataToUserAddr(BUFFERBASEADDR, USERBASEADDR, uiAppSize))
 									{
-										SendCmdToCamera(UpdateUART,ucUpdateSucc);
-										
-										//升级成功后，写入版本信息
-//										s_devicePara.usUpdateNum++;
-//										ps_AT24CXX->AT24CXX_Write(UPDATEADDR,(unsigned char *)&s_devicePara,sizeof(s_devicePara));
-//										ps_Systick->delay_ms(100);
-										
+										/*
+										* APP 已经写入成功。
+										* 清除 EEPROM 升级标志，避免下次上电重复进入升级模式。
+										*/
+										if (IAPFlag_Clear())
+										{
+											SendCmdToCamera(UpdateUART, ucUpdateSucc);
+										}
+										else
+										{
+											/*
+											* EEPROM 标志清除失败。
+											* 不向上位机报告升级完全成功。
+											*/
+											SendCmdToCamera(UpdateUART, ucUpdateFai);
+										}
 										break;
 									}
 									else

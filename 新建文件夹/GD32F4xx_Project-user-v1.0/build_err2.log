@@ -1,0 +1,14 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'GD32F470VG'
+compiling usart.c...
+code\Code_All\usart.c(80): warning:  #9-D: nested comment is not allowed
+      /*
+code\Code_All\usart.c(92): warning:  #1-D: last line of file ends without a newline
+  }*/
+code\Code_All\usart.c(92): error:  #169: expected a declaration
+  }*/
+code\Code_All\usart.c: 2 warnings, 1 error
+compiling main.c...
+".\Output\template.axf" - 1 Error(s), 2 Warning(s).
+Target not created.
+Build Time Elapsed:  00:00:01

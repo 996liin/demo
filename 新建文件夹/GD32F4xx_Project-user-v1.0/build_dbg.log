@@ -1,0 +1,9 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'GD32F470VG'
+compiling main.c...
+linking...
+Program Size: Code=8484 RO-data=1992 RW-data=64 ZI-data=18000  
+FromELF: creating hex file...
+After Build - User command #1: C:\Keil_v5\ARM\ARMCC\bin\fromelf.exe --bin -o  .\bin\template.bin .\Output\template.axf
+".\Output\template.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:02

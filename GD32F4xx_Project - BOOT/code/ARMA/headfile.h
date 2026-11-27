@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "flash.h"
 #include "iap.h"
+#include "iap_flag.h"
 
 
 #endif

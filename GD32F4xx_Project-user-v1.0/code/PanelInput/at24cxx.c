@@ -174,6 +174,9 @@ static void AT24CXX_WaitEepromReady(void)
 
 /**
  * @brief 任意长度顺序读取 (Sequential Read)
+ * @ReadAddr 要读取的地址
+ * @pBuffer 通过参数将读取到的数据回传上部
+ * @NuToRead 应该是读取的位数
  */
 static void AT24CXX_Read(unsigned short ReadAddr, unsigned char *pBuffer, unsigned short NumToRead)
 {

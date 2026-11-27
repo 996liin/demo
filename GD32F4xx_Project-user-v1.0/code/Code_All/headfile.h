@@ -11,11 +11,15 @@
 #include "gd32f4xx.h"
 #include "stdlib.h"
 #include "string.h"
+
 #include "systick.h"
 #include "usart.h"
 #include "fwdgt.h"
 
 #include "at24cxx.h"
+#include "iap_flag.h"
+#include "iap_app.h"
+
 #include "panel_config.h"
 #include "panel_input.h"
 

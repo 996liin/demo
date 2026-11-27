@@ -32,9 +32,7 @@ static void Uart3Init(unsigned int uibaudrate)
     gpio_af_set(GPIOC, GPIO_AF_8, GPIO_PIN_10 | GPIO_PIN_11);
     gpio_mode_set(GPIOC, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO_PIN_10 | GPIO_PIN_11);
     gpio_output_options_set(GPIOC, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_10 | GPIO_PIN_11);
-   // nvic_irq_enable(UART3_IRQn, 5, 0);
-
-   // usart_interrupt_enable(UART3, USART_INT_RBNE);
+    
     usart_baudrate_set(UART3, uibaudrate);
     usart_parity_config(UART3, USART_PM_NONE);
     usart_word_length_set(UART3, USART_WL_8BIT);
@@ -44,6 +42,9 @@ static void Uart3Init(unsigned int uibaudrate)
     usart_receive_config(UART3, USART_RECEIVE_ENABLE);
     usart_data_first_config(UART3, USART_MSBF_LSB);
     usart_enable(UART3);
+	
+	nvic_irq_enable(UART3_IRQn, 5, 0);
+    usart_interrupt_enable(UART3, USART_INT_RBNE);
 }
 
 static void Uart3_SendData(unsigned char *pdata, unsigned short usdatalen)
@@ -73,19 +74,28 @@ static void Uart3_SendData(unsigned char *pdata, unsigned short usdatalen)
     }
 }
 
-/*
+
 void UART3_IRQHandler(void)
 {
-    
-    if (RESET != usart_interrupt_flag_get(UART3, USART_INT_FLAG_RBNE_ORERR))
+    uint8_t data;
+
+    /*
+     * 正常接收数据：
+     * 读取数据寄存器后，RBNE 标志会被清除。
+     */
+    if (RESET != usart_interrupt_flag_get(UART3, USART_INT_FLAG_RBNE))
     {
-        usart_data_receive(UART3);
+        data = (uint8_t)usart_data_receive(UART3);
+
+        IAP_UartRxPush(data);
     }
-    if (RESET != usart_interrupt_flag_get(USART3, USART_INT_FLAG_RBNE))
+    /*
+     * 接收错误：
+     * 读取数据寄存器，清除接收错误状态。
+     */
+    else if (RESET != usart_interrupt_flag_get(UART3, USART_INT_FLAG_RBNE_ORERR))
     {
-        u8 recvData = 0;
-        recvData = usart_data_receive(USART3);
-        if (NULL !=)
+        (void)usart_data_receive(UART3);
     }
         
-}*/
+}
